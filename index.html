@@ -901,7 +901,10 @@
                     <div id="imagePreviewContainer" class="hidden">
                         <div class="relative rounded-xl overflow-hidden mb-4">
                             <img id="imagePreview" class="w-full" style="max-height: 250px; object-fit: cover;">
-                            <button class="absolute top-2 right-2 btn glass-button btn-sm" onclick="clearImage()">✕</button>
+                            <div class="absolute top-2 right-2 flex gap-2">
+                                <button class="btn glass-button btn-sm" onclick="document.getElementById('imageInput').click()" title="Change image">🔄</button>
+                                <button class="btn glass-button btn-sm" onclick="clearImage()" title="Remove image">✕</button>
+                            </div>
                         </div>
                         
                         <div class="mb-4">
@@ -1529,6 +1532,9 @@
         updateSelectedColorInfo();
         updateColorsList();
         updateGradientPreview();
+
+        // Auto-sync to Blender when palette changes
+        autoSyncToBlender();
     }
     
     function updateSelectedColorInfo() {
@@ -2425,19 +2431,26 @@
         }
     }
     
-    function syncToBlender() {
+    function syncToBlender(silent = false) {
         if (!isBlenderConnected) {
-            showToast('⚠️', 'Not connected to Blender');
+            if (!silent) showToast('⚠️', 'Not connected to Blender');
             return;
         }
-        
+
         blenderSocket.send(JSON.stringify({
             type: 'palette',
             colors: palette,
             gridSize: gridSize
         }));
-        
-        showToast('📤', 'Sent to Blender!');
+
+        if (!silent) showToast('📤', 'Sent to Blender!');
+    }
+
+    // Auto-sync: call this after any palette change
+    function autoSyncToBlender() {
+        if (isBlenderConnected) {
+            syncToBlender(true); // Silent sync
+        }
     }
     
     // ================================================
@@ -2562,23 +2575,76 @@
         generatePalette();
     });
     
-    // Color wheel click
-    document.getElementById('colorWheel').addEventListener('click', (e) => {
-        const rect = e.target.getBoundingClientRect();
-        const x = e.clientX - rect.left - 160;
-        const y = e.clientY - rect.top - 160;
-        
+    // Color wheel click and drag
+    let isDraggingWheel = false;
+
+    function handleWheelInteraction(e, generateOnEnd = false) {
+        const wheel = document.getElementById('colorWheel');
+        const rect = wheel.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const x = e.clientX - rect.left - centerX;
+        const y = e.clientY - rect.top - centerY;
+
         // Check if inside the wheel (not center)
         const dist = Math.sqrt(x * x + y * y);
-        if (dist < 48 || dist > 160) return;
-        
+        if (dist < 48 || dist > centerX) return false;
+
         let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
         if (angle < 0) angle += 360;
-        
+
         seedColor = hslToHex(angle, 70, 55);
         document.getElementById('seedColorPicker').value = seedColor;
         document.getElementById('seedHexDisplay').textContent = seedColor.toUpperCase();
-        generatePalette();
+        updateWheelMarkers();
+
+        if (generateOnEnd) {
+            generatePalette();
+        }
+
+        return true;
+    }
+
+    document.getElementById('colorWheel').addEventListener('mousedown', (e) => {
+        if (handleWheelInteraction(e, false)) {
+            isDraggingWheel = true;
+            e.preventDefault();
+        }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDraggingWheel) {
+            handleWheelInteraction(e, false);
+        }
+    });
+
+    document.addEventListener('mouseup', (e) => {
+        if (isDraggingWheel) {
+            isDraggingWheel = false;
+            generatePalette();
+        }
+    });
+
+    // Touch support for mobile
+    document.getElementById('colorWheel').addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        if (handleWheelInteraction(touch, false)) {
+            isDraggingWheel = true;
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+        if (isDraggingWheel && e.touches[0]) {
+            handleWheelInteraction(e.touches[0], false);
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        if (isDraggingWheel) {
+            isDraggingWheel = false;
+            generatePalette();
+        }
     });
     
     // ================================================

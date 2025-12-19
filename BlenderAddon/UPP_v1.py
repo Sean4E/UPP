@@ -1289,7 +1289,7 @@ def get_palette_as_json(context):
     """Get current palette as JSON for web app."""
     props = context.scene.ultimate_palette
     colors = []
-    for item in props.palette_colors:
+    for item in props.colors:  # Fixed: was palette_colors
         r = int(item.color[0] * 255)
         g = int(item.color[1] * 255)
         b = int(item.color[2] * 255)
@@ -1305,23 +1305,37 @@ def get_palette_as_json(context):
 def apply_palette_from_json(context, data):
     """Apply palette received from web app."""
     props = context.scene.ultimate_palette
-    props.palette_colors.clear()
 
-    for hex_color in data.get("colors", []):
-        item = props.palette_colors.add()
+    hex_colors = data.get("colors", [])
+    grid_size = data.get("gridSize", 8)
+
+    # Update grid size first if different
+    if str(grid_size) in [item[0] for item in GRID_SIZES]:
+        if props.grid_size != str(grid_size):
+            props.grid_size = str(grid_size)
+
+    # Clear and rebuild colors
+    props.colors.clear()  # Fixed: was palette_colors
+
+    for hex_color in hex_colors:
+        item = props.colors.add()
         hex_clean = hex_color.lstrip('#')
         r = int(hex_clean[0:2], 16) / 255.0
         g = int(hex_clean[2:4], 16) / 255.0
         b = int(hex_clean[4:6], 16) / 255.0
         item.color = (r, g, b)
+        item.name = get_color_name(r, g, b)
 
-    grid_size = data.get("gridSize", 8)
-    if str(grid_size) in [item[0] for item in GRID_SIZES]:
-        props.grid_size = str(grid_size)
+    # Update preview
+    colors_tuple = [tuple(c.color) for c in props.colors]
+    pm = PreviewManager()
+    pm.create_grid_preview(colors_tuple, grid_size)
 
     # Force UI update
     for area in bpy.context.screen.areas:
         area.tag_redraw()
+
+    print(f"[UPP WebSocket] Applied {len(hex_colors)} colors from web")
 
 
 # ============================================================================
