@@ -1,0 +1,2649 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ultimate Palette Pro - Professional color palette generator with harmony modes, image extraction, and Blender sync">
+    <meta name="theme-color" content="#0a0e17">
+    <title>Ultimate Palette Pro | The Color Tool</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" href="favicon.ico">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #0f172a;
+            --bg-tertiary: #1e293b;
+            --accent-red: #ff6b6b;
+            --accent-orange: #feca57;
+            --accent-cyan: #48dbfb;
+            --accent-purple: #a55eea;
+            --accent-green: #26de81;
+            --accent-pink: #fd79a8;
+        }
+
+
+    * {
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+    
+    body {
+        background: var(--bg-primary);
+        color: white;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+    
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    /* ========== ANIMATED BACKGROUND ========== */
+    .bg-universe {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background: 
+            radial-gradient(ellipse at 15% 25%, rgba(255, 107, 107, 0.12) 0%, transparent 50%),
+            radial-gradient(ellipse at 85% 15%, rgba(72, 219, 251, 0.1) 0%, transparent 45%),
+            radial-gradient(ellipse at 50% 80%, rgba(165, 94, 234, 0.08) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 70%, rgba(254, 202, 87, 0.06) 0%, transparent 40%),
+            var(--bg-primary);
+        animation: cosmicDrift 30s ease-in-out infinite;
+    }
+    
+    @keyframes cosmicDrift {
+        0%, 100% { filter: hue-rotate(0deg); }
+        50% { filter: hue-rotate(15deg); }
+    }
+    
+    /* ========== GLASSMORPHISM ========== */
+    .glass {
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 20px;
+    }
+    
+    .glass-panel {
+        background: linear-gradient(180deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.95) 100%);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 16px;
+    }
+    
+    .glass-button {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .glass-button:hover {
+        background: rgba(255,255,255,0.15);
+        border-color: rgba(255,255,255,0.25);
+        transform: translateY(-2px);
+    }
+    
+    .glass-button.active {
+        background: rgba(255, 107, 107, 0.2);
+        border-color: var(--accent-red);
+    }
+    
+    /* ========== COLOR WHEEL ========== */
+    .wheel-container {
+        position: relative;
+        width: 320px;
+        height: 320px;
+        margin: 0 auto;
+    }
+    
+    .color-wheel {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: conic-gradient(
+            hsl(0, 85%, 55%),
+            hsl(30, 85%, 55%),
+            hsl(60, 85%, 55%),
+            hsl(90, 85%, 55%),
+            hsl(120, 85%, 55%),
+            hsl(150, 85%, 55%),
+            hsl(180, 85%, 55%),
+            hsl(210, 85%, 55%),
+            hsl(240, 85%, 55%),
+            hsl(270, 85%, 55%),
+            hsl(300, 85%, 55%),
+            hsl(330, 85%, 55%),
+            hsl(360, 85%, 55%)
+        );
+        cursor: crosshair;
+        box-shadow: 
+            0 0 60px rgba(255, 255, 255, 0.1),
+            inset 0 0 80px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease;
+    }
+    
+    .color-wheel:hover {
+        transform: scale(1.02);
+    }
+    
+    .wheel-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 30%;
+        height: 30%;
+        background: var(--bg-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+        z-index: 5;
+    }
+    
+    .wheel-marker {
+        position: absolute;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 0 2px rgba(0,0,0,0.3);
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        cursor: grab;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    
+    .wheel-marker:hover {
+        transform: translate(-50%, -50%) scale(1.2);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 0 3px rgba(255,255,255,0.3);
+    }
+    
+    .wheel-marker.primary {
+        width: 36px;
+        height: 36px;
+        border-width: 4px;
+        z-index: 15;
+    }
+    
+    /* Harmony lines on wheel */
+    .harmony-line {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.4);
+        transform-origin: left center;
+        pointer-events: none;
+        z-index: 3;
+    }
+    
+    .harmony-shape {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 2;
+    }
+    
+    /* ========== PALETTE GRID ========== */
+    .palette-cell:hover {
+        transform: scale(1.1);
+        z-index: 20;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    }
+
+    .palette-cell.selected::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border: 3px solid white;
+        box-shadow: inset 0 0 10px rgba(255,255,255,0.5);
+    }
+
+    .palette-cell.locked::before {
+        content: '🔒';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 12px;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    
+    /* ========== SLIDERS ========== */
+    .slider-track {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 10px;
+        border-radius: 5px;
+        outline: none;
+        cursor: pointer;
+    }
+    
+    .slider-track::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: white;
+        cursor: grab;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3), 0 0 0 2px rgba(255,255,255,0.2);
+        transition: transform 0.15s ease;
+    }
+    
+    .slider-track::-webkit-slider-thumb:hover {
+        transform: scale(1.15);
+    }
+    
+    .slider-hue {
+        background: linear-gradient(to right, 
+            hsl(0, 80%, 50%), hsl(60, 80%, 50%), hsl(120, 80%, 50%), 
+            hsl(180, 80%, 50%), hsl(240, 80%, 50%), hsl(300, 80%, 50%), hsl(360, 80%, 50%)
+        );
+    }
+    
+    .slider-saturation {
+        background: linear-gradient(to right, #888, var(--current-hue, #ff6b6b));
+    }
+    
+    .slider-lightness {
+        background: linear-gradient(to right, #000, var(--current-hue, #ff6b6b), #fff);
+    }
+    
+    .slider-temp {
+        background: linear-gradient(to right, #4da6ff, #fff, #ff9f43);
+    }
+    
+    /* ========== BUTTONS ========== */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        font-size: 14px;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, var(--accent-red) 0%, #e55039 100%);
+        color: white;
+        box-shadow: 0 4px 20px rgba(255, 107, 107, 0.4);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(255, 107, 107, 0.5);
+    }
+    
+    .btn-secondary {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .btn-secondary:hover {
+        background: rgba(255,255,255,0.18);
+    }
+    
+    .btn-icon {
+        width: 48px;
+        height: 48px;
+        padding: 0;
+        font-size: 20px;
+    }
+    
+    .btn-sm {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+    
+    /* ========== HARMONY PILLS ========== */
+    .harmony-pill {
+        padding: 10px 18px;
+        border-radius: 25px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    
+    .harmony-pill:hover {
+        background: rgba(255,255,255,0.12);
+    }
+    
+    .harmony-pill.active {
+        background: linear-gradient(135deg, rgba(255,107,107,0.25) 0%, rgba(255,107,107,0.1) 100%);
+        border-color: var(--accent-red);
+        color: white;
+    }
+    
+    .harmony-pill .dots {
+        display: inline-flex;
+        gap: 3px;
+        margin-left: 8px;
+    }
+    
+    .harmony-pill .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+    
+    /* ========== COLOR INFO CARD ========== */
+    .color-info-card {
+        background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        padding: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .color-info-card:hover {
+        border-color: rgba(255,255,255,0.2);
+    }
+    
+    .color-preview-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        transition: transform 0.3s ease;
+    }
+    
+    .color-preview-large:hover {
+        transform: scale(1.05) rotate(2deg);
+    }
+    
+    /* ========== TABS ========== */
+    .tab-container {
+        display: flex;
+        gap: 4px;
+        background: rgba(0,0,0,0.2);
+        padding: 4px;
+        border-radius: 14px;
+    }
+    
+    .tab-btn {
+        flex: 1;
+        padding: 12px 20px;
+        background: transparent;
+        border: none;
+        color: rgba(255,255,255,0.5);
+        cursor: pointer;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .tab-btn:hover {
+        color: rgba(255,255,255,0.8);
+    }
+    
+    .tab-btn.active {
+        background: rgba(255,255,255,0.1);
+        color: white;
+    }
+    
+    /* ========== UPLOAD AREA ========== */
+    .upload-zone {
+        border: 2px dashed rgba(255,255,255,0.2);
+        border-radius: 16px;
+        padding: 40px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: var(--accent-cyan);
+        background: rgba(72, 219, 251, 0.05);
+    }
+    
+    .upload-zone.has-image {
+        padding: 0;
+        border: none;
+    }
+    
+    /* ========== PRESET CARDS ========== */
+    .preset-card {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .preset-card:hover {
+        background: rgba(255,255,255,0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .preset-card.active {
+        border-color: var(--accent-red);
+        box-shadow: 0 0 30px rgba(255, 107, 107, 0.2);
+    }
+    
+    .preset-colors {
+        display: flex;
+        height: 32px;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 8px;
+    }
+    
+    .preset-colors > div {
+        flex: 1;
+        transition: flex 0.2s ease;
+    }
+    
+    .preset-card:hover .preset-colors > div:hover {
+        flex: 2;
+    }
+    
+    /* ========== BLENDER SYNC ========== */
+    .sync-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 18px;
+        background: rgba(0,0,0,0.3);
+        border-radius: 25px;
+        font-size: 13px;
+    }
+    
+    .sync-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ef4444;
+        transition: background 0.3s ease;
+    }
+    
+    .sync-dot.connected {
+        background: var(--accent-green);
+        box-shadow: 0 0 10px var(--accent-green);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.1); }
+    }
+    
+    /* ========== TOAST ========== */
+    .toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: rgba(30, 41, 59, 0.95);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 14px;
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        transform: translateY(120px);
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        z-index: 1000;
+    }
+    
+    .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    
+    /* ========== MODAL ========== */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    
+    .modal-overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    
+    .modal {
+        background: var(--bg-secondary);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 24px;
+        padding: 32px;
+        max-width: 500px;
+        width: 90%;
+        transform: scale(0.9) translateY(20px);
+        transition: transform 0.3s ease;
+    }
+    
+    .modal-overlay.show .modal {
+        transform: scale(1) translateY(0);
+    }
+    
+    /* ========== SCROLLBAR ========== */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+    /* ========== ACCESSIBILITY ========== */
+    /* Focus indicators for keyboard navigation */
+    *:focus-visible {
+        outline: 2px solid var(--accent-cyan);
+        outline-offset: 2px;
+    }
+
+    button:focus-visible, .btn:focus-visible {
+        outline: 2px solid var(--accent-cyan);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 4px rgba(72, 219, 251, 0.3);
+    }
+
+    /* Skip link for screen readers */
+    .skip-link {
+        position: absolute;
+        top: -40px;
+        left: 0;
+        background: var(--accent-cyan);
+        color: var(--bg-primary);
+        padding: 8px 16px;
+        z-index: 1000;
+        font-weight: 600;
+        border-radius: 0 0 8px 0;
+        transition: top 0.2s;
+    }
+
+    .skip-link:focus {
+        top: 0;
+    }
+
+    /* Improve low contrast text */
+    .text-muted {
+        color: rgba(255,255,255,0.65);
+    }
+
+    /* ========== PALETTE SCALE ========== */
+    .palette-scale-container {
+        --palette-size: 100%;
+    }
+
+    .palette-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        width: 100%;
+        overflow: auto;
+    }
+
+    .palette-container {
+        width: var(--palette-size);
+        max-width: 100%;
+        aspect-ratio: 1;
+        flex-shrink: 0;
+    }
+
+    .palette-grid {
+        display: grid;
+        gap: 1px;
+        background: rgba(0,0,0,0.3);
+        width: 100%;
+        height: 100%;
+    }
+
+    .palette-cell {
+        aspect-ratio: 1;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        position: relative;
+    }
+
+    .scale-slider {
+        width: 100%;
+        height: 6px;
+        -webkit-appearance: none;
+        background: rgba(255,255,255,0.1);
+        border-radius: 3px;
+        outline: none;
+    }
+
+    .scale-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: white;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    /* ========== HELP MODAL ========== */
+    .help-modal {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .shortcut-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px 16px;
+        align-items: center;
+    }
+
+    .shortcut-key {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* ========== ANIMATIONS ========== */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-in {
+        animation: fadeInUp 0.5s ease forwards;
+    }
+    
+    /* ========== ACCESSIBILITY BADGE ========== */
+    .a11y-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    
+    .a11y-badge.pass {
+        background: rgba(38, 222, 129, 0.2);
+        color: var(--accent-green);
+    }
+    
+    .a11y-badge.fail {
+        background: rgba(255, 107, 107, 0.2);
+        color: var(--accent-red);
+    }
+    
+    /* ========== KEYBOARD HINT ========== */
+    .kbd {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        height: 24px;
+        padding: 0 8px;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 6px;
+        font-size: 11px;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
+    /* ========== HEX CHIP ========== */
+    .hex-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .hex-chip:hover {
+        transform: scale(1.05);
+    }
+    
+    .hex-chip .swatch {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    
+    /* ========== GRADIENT PREVIEW ========== */
+    .gradient-bar {
+        height: 40px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    
+    /* ========== HISTORY ========== */
+    .history-item {
+        display: flex;
+        gap: 2px;
+        padding: 8px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .history-item:hover {
+        background: rgba(255,255,255,0.08);
+    }
+    
+    .history-item .color {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+    }
+</style>
+
+
+</head>
+<body>
+    <!-- Skip link for keyboard accessibility -->
+    <a href="#paletteGrid" class="skip-link">Skip to palette</a>
+
+    <div class="bg-universe" aria-hidden="true"></div>
+
+<!-- ========== HEADER ========== -->
+<header class="sticky top-0 z-50 glass-panel border-t-0 rounded-t-none" role="banner">
+    <div class="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden" aria-hidden="true">
+                <svg width="48" height="48" viewBox="0 0 512 512">
+                    <defs>
+                        <linearGradient id="headerRainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#ff6b6b"/>
+                            <stop offset="20%" style="stop-color:#feca57"/>
+                            <stop offset="40%" style="stop-color:#26de81"/>
+                            <stop offset="60%" style="stop-color:#48dbfb"/>
+                            <stop offset="80%" style="stop-color:#a55eea"/>
+                            <stop offset="100%" style="stop-color:#fd79a8"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="256" cy="256" r="240" fill="#0a0e17"/>
+                    <circle cx="256" cy="256" r="200" fill="none" stroke="url(#headerRainbow)" stroke-width="40"/>
+                    <circle cx="256" cy="256" r="120" fill="#0a0e17"/>
+                    <circle cx="256" cy="76" r="28" fill="#ff6b6b"/>
+                    <circle cx="412" cy="346" r="28" fill="#48dbfb"/>
+                    <circle cx="100" cy="346" r="28" fill="#26de81"/>
+                    <polygon points="256,76 412,346 100,346" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
+                    <circle cx="256" cy="256" r="20" fill="white" opacity="0.9"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-lg font-semibold">Ultimate Palette Pro</h1>
+                <p class="text-xs text-white/60">Press <kbd class="kbd">Space</kbd> to generate</p>
+            </div>
+        </div>
+
+        <nav class="flex items-center gap-4" aria-label="Main actions">
+            <!-- Help -->
+            <button class="btn glass-button btn-icon btn-sm" onclick="showHelpModal()" title="Keyboard Shortcuts (?)" aria-label="Show keyboard shortcuts">?</button>
+
+            <!-- History -->
+            <button class="btn btn-secondary btn-sm" onclick="toggleHistory()" title="History (Ctrl+H)" aria-label="View palette history">
+                📜 History
+            </button>
+
+            <!-- Undo/Redo -->
+            <div class="flex gap-1" role="group" aria-label="Undo and redo">
+                <button class="btn glass-button btn-icon btn-sm" onclick="undo()" title="Undo (Ctrl+Z)" id="undoBtn" aria-label="Undo" disabled>↶</button>
+                <button class="btn glass-button btn-icon btn-sm" onclick="redo()" title="Redo (Ctrl+Y)" id="redoBtn" aria-label="Redo" disabled>↷</button>
+            </div>
+
+            <!-- Blender Sync -->
+            <div class="sync-indicator" role="status" aria-live="polite">
+                <div class="sync-dot" id="syncDot" aria-hidden="true"></div>
+                <span id="syncText">Blender</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="toggleBlenderConnection()" id="connectBtn" aria-label="Connect to Blender">
+                🔗 Connect
+            </button>
+
+            <!-- Export -->
+            <button class="btn btn-primary" onclick="showExportModal()" aria-label="Export palette">
+                💾 Export
+            </button>
+        </nav>
+    </div>
+</header>
+
+<!-- ========== MAIN LAYOUT ========== -->
+<main class="max-w-[1800px] mx-auto px-6 py-6">
+    <div class="grid grid-cols-12 gap-6">
+        
+        <!-- ========== LEFT PANEL - SOURCE ========== -->
+        <div class="col-span-12 lg:col-span-4 xl:col-span-3 space-y-6">
+            
+            <!-- Source Tabs -->
+            <div class="glass-panel p-4 animate-in">
+                <div class="tab-container mb-6">
+                    <button class="tab-btn active" data-tab="wheel" onclick="switchSourceTab('wheel')">🎨 Color</button>
+                    <button class="tab-btn" data-tab="image" onclick="switchSourceTab('image')">📷 Image</button>
+                    <button class="tab-btn" data-tab="presets" onclick="switchSourceTab('presets')">📁 Presets</button>
+                </div>
+                
+                <!-- Color Wheel Tab -->
+                <div class="tab-content" id="tab-wheel">
+                    <div class="wheel-container mb-6">
+                        <div class="color-wheel" id="colorWheel"></div>
+                        <div class="wheel-center">
+                            <input type="color" id="seedColorPicker" value="#ff6b6b" 
+                                class="w-12 h-12 rounded-full cursor-pointer border-2 border-white/20">
+                        </div>
+                        <svg class="harmony-shape" id="harmonyShape" width="320" height="320"></svg>
+                        <!-- Markers added by JS -->
+                    </div>
+                    
+                    <!-- Seed Color Info -->
+                    <div class="flex items-center justify-between mb-6 p-4 glass rounded-xl">
+                        <div>
+                            <div class="text-xs text-white/40 mb-1">Seed Color</div>
+                            <div class="mono text-xl font-semibold" id="seedHexDisplay">#FF6B6B</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn glass-button btn-sm" onclick="randomSeedColor()" title="Random">🎲</button>
+                            <button class="btn glass-button btn-sm" onclick="copySeedColor()" title="Copy">📋</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Harmony Selection -->
+                    <div class="mb-2 text-sm text-white/50">Color Harmony</div>
+                    <div class="flex flex-wrap gap-2 mb-6" id="harmonyButtons">
+                        <!-- Generated by JS -->
+                    </div>
+                    
+                    <button class="btn btn-primary w-full" onclick="generatePalette()">
+                        ⚡ Generate Palette
+                    </button>
+                </div>
+                
+                <!-- Image Tab -->
+                <div class="tab-content hidden" id="tab-image">
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
+                        <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                        <div class="text-5xl mb-4">📷</div>
+                        <div class="text-white/60 mb-2">Drop an image or click to upload</div>
+                        <div class="text-xs text-white/30">Supports JPG, PNG, WebP, GIF</div>
+                    </div>
+                    
+                    <div id="imagePreviewContainer" class="hidden">
+                        <div class="relative rounded-xl overflow-hidden mb-4">
+                            <img id="imagePreview" class="w-full" style="max-height: 250px; object-fit: cover;">
+                            <button class="absolute top-2 right-2 btn glass-button btn-sm" onclick="clearImage()">✕</button>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="text-sm text-white/50 mb-2">Extraction Method</div>
+                            <select id="extractionMethod" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white">
+                                <option value="kmeans">K-Means Clustering (Accurate)</option>
+                                <option value="dominant">Dominant Colors (Fast)</option>
+                                <option value="vibrant">Most Vibrant</option>
+                                <option value="muted">Muted Tones</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-primary w-full" onclick="extractFromImage()">
+                            🎨 Extract Colors
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Presets Tab -->
+                <div class="tab-content hidden" id="tab-presets">
+                    <div class="mb-4">
+                        <select id="presetCategory" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" onchange="filterPresets()">
+                            <option value="all">All Categories</option>
+                            <option value="nature">🌿 Nature</option>
+                            <option value="mood">💭 Mood</option>
+                            <option value="retro">📺 Retro</option>
+                            <option value="uiux">🖥️ UI/UX</option>
+                            <option value="art">🎨 Art</option>
+                            <option value="cinema">🎬 Cinematic</option>
+                        </select>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2" id="presetsGrid">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Grid Settings -->
+            <div class="glass-panel p-4 animate-in" style="animation-delay: 0.1s;">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="text-sm font-medium">Grid Size</div>
+                    <div class="mono text-white/50" id="gridSizeLabel">8×8</div>
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn glass-button flex-1 btn-sm" onclick="setGridSize(4)" data-size="4">4×4</button>
+                    <button class="btn glass-button flex-1 btn-sm" onclick="setGridSize(6)" data-size="6">6×6</button>
+                    <button class="btn glass-button flex-1 btn-sm active" onclick="setGridSize(8)" data-size="8">8×8</button>
+                    <button class="btn glass-button flex-1 btn-sm" onclick="setGridSize(12)" data-size="12">12</button>
+                    <button class="btn glass-button flex-1 btn-sm" onclick="setGridSize(16)" data-size="16">16</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ========== CENTER - PALETTE ========== -->
+        <div class="col-span-12 lg:col-span-5 xl:col-span-6 space-y-6">
+            
+            <!-- Main Palette Grid -->
+            <div class="glass-panel p-6 animate-in palette-scale-container" style="animation-delay: 0.15s;" id="palettePanel">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold">Palette</h2>
+                    <div class="flex items-center gap-3">
+                        <button class="btn glass-button btn-sm" onclick="shufflePalette()" title="Shuffle" aria-label="Shuffle colors">🔀</button>
+                        <button class="btn glass-button btn-sm" onclick="randomizePalette()" title="Random (Space)" aria-label="Randomize palette">🎲</button>
+                        <button class="btn glass-button btn-sm" onclick="syncToBlender()" title="Send to Blender" id="syncBtn" aria-label="Sync to Blender">
+                            📤 Sync
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Palette Scale Control -->
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="text-xs text-white/60">Size:</span>
+                    <input type="range" class="scale-slider flex-1" id="paletteScale"
+                           min="200" max="600" step="10" value="400"
+                           oninput="setPaletteScale(this.value)"
+                           aria-label="Palette display size">
+                    <span class="text-xs text-white/60 mono w-16" id="scaleLabel">400px</span>
+                </div>
+
+                <div class="palette-wrapper mb-4">
+                    <div class="palette-container rounded-2xl overflow-hidden shadow-2xl" id="paletteContainer" style="width: 400px; height: 400px;">
+                        <div class="palette-grid" id="paletteGrid" role="grid" aria-label="Color palette grid">
+                            <!-- Generated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Palette Actions -->
+                <div class="flex gap-2 flex-wrap" role="group" aria-label="Palette sorting and transformation">
+                    <button class="btn glass-button btn-sm" onclick="sortPalette('hue')" title="Sort by Hue" aria-label="Sort by hue">🌈 Hue</button>
+                    <button class="btn glass-button btn-sm" onclick="sortPalette('light')" title="Sort by Lightness" aria-label="Sort by lightness">☀️ Light</button>
+                    <button class="btn glass-button btn-sm" onclick="sortPalette('sat')" title="Sort by Saturation" aria-label="Sort by saturation">💧 Sat</button>
+                    <button class="btn glass-button btn-sm" onclick="flipH()" aria-label="Flip horizontally">↔️</button>
+                    <button class="btn glass-button btn-sm" onclick="flipV()" aria-label="Flip vertically">↕️</button>
+                    <button class="btn glass-button btn-sm" onclick="rotateL()" aria-label="Rotate left">↺</button>
+                    <button class="btn glass-button btn-sm" onclick="rotateR()" aria-label="Rotate right">↻</button>
+                </div>
+            </div>
+            
+            <!-- Color Info -->
+            <div class="glass-panel p-6 animate-in" style="animation-delay: 0.2s;">
+                <div class="flex items-start gap-6">
+                    <div class="color-preview-large" id="selectedColorPreview" style="background: #ff6b6b;"></div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="mono text-2xl font-bold" id="selectedHex">#FF6B6B</span>
+                            <button class="btn glass-button btn-sm" onclick="copySelectedColor()">📋</button>
+                            <button class="btn glass-button btn-sm" onclick="lockSelectedColor()" id="lockBtn">🔓</button>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                                <div class="text-white/40">RGB</div>
+                                <div class="mono" id="selectedRgb">255, 107, 107</div>
+                            </div>
+                            <div>
+                                <div class="text-white/40">HSL</div>
+                                <div class="mono" id="selectedHsl">0°, 100%, 71%</div>
+                            </div>
+                            <div>
+                                <div class="text-white/40">Name</div>
+                                <div id="selectedName">Coral Red</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Accessibility Check -->
+                <div class="mt-4 pt-4 border-t border-white/10">
+                    <div class="text-sm text-white/50 mb-2">Accessibility (WCAG)</div>
+                    <div class="flex gap-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded flex items-center justify-center text-sm font-bold" 
+                                id="a11yWhite" style="background: #ff6b6b; color: white;">Aa</div>
+                            <span class="a11y-badge" id="a11yWhiteBadge">AA ✓</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded flex items-center justify-center text-sm font-bold" 
+                                id="a11yBlack" style="background: #ff6b6b; color: black;">Aa</div>
+                            <span class="a11y-badge" id="a11yBlackBadge">AAA ✓</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gradient Preview -->
+            <div class="glass-panel p-6 animate-in" style="animation-delay: 0.25s;">
+                <div class="text-sm font-medium mb-3">Gradient Preview</div>
+                <div class="gradient-bar" id="gradientBar"></div>
+            </div>
+        </div>
+        
+        <!-- ========== RIGHT PANEL - ADJUSTMENTS ========== -->
+        <div class="col-span-12 lg:col-span-3 space-y-6">
+            
+            <!-- Adjustments -->
+            <div class="glass-panel p-6 animate-in" style="animation-delay: 0.3s;">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="font-semibold">Adjustments</h3>
+                    <button class="btn glass-button btn-sm" onclick="resetAdjustments()">↺ Reset</button>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-white/50">Hue Shift</span>
+                            <span class="mono text-white/40" id="hueVal">0°</span>
+                        </div>
+                        <input type="range" id="hueSlider" class="slider-track slider-hue" 
+                            min="-180" max="180" value="0" oninput="applyAdjustments()">
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-white/50">Saturation</span>
+                            <span class="mono text-white/40" id="satVal">100%</span>
+                        </div>
+                        <input type="range" id="satSlider" class="slider-track slider-saturation" 
+                            min="0" max="200" value="100" oninput="applyAdjustments()">
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-white/50">Lightness</span>
+                            <span class="mono text-white/40" id="lightVal">100%</span>
+                        </div>
+                        <input type="range" id="lightSlider" class="slider-track slider-lightness" 
+                            min="0" max="200" value="100" oninput="applyAdjustments()">
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-white/50">Temperature</span>
+                            <span class="mono text-white/40" id="tempVal">0</span>
+                        </div>
+                        <input type="range" id="tempSlider" class="slider-track slider-temp" 
+                            min="-50" max="50" value="0" oninput="applyAdjustments()">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Palette Colors List -->
+            <div class="glass-panel p-6 animate-in" style="animation-delay: 0.35s;">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold">Colors <span class="text-white/50 text-sm font-normal" id="colorsCount">(0)</span></h3>
+                    <button class="btn glass-button btn-sm" onclick="copyAllColors()" aria-label="Copy all colors to clipboard">📋 Copy All</button>
+                </div>
+                <div class="flex flex-wrap gap-2 max-h-[300px] overflow-y-auto pr-1" id="colorsList" role="list" aria-label="Unique colors in palette">
+                    <!-- Generated by JS - now shows ALL unique colors -->
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="glass-panel p-6 animate-in" style="animation-delay: 0.4s;">
+                <h3 class="font-semibold mb-4">Quick Export</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="btn glass-button btn-sm" onclick="quickExport('png')">PNG</button>
+                    <button class="btn glass-button btn-sm" onclick="quickExport('svg')">SVG</button>
+                    <button class="btn glass-button btn-sm" onclick="quickExport('css')">CSS</button>
+                    <button class="btn glass-button btn-sm" onclick="quickExport('json')">JSON</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ========== EXPORT MODAL ========== -->
+<div class="modal-overlay" id="exportModal" onclick="hideExportModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <h2 class="text-2xl font-bold mb-6">Export Palette</h2>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="text-sm text-white/50 mb-2 block">Format</label>
+                <select id="exportFormat" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white" onchange="updateExportOptions()">
+                    <option value="png">PNG Image</option>
+                    <option value="jpeg">JPEG Image</option>
+                    <option value="webp">WebP Image</option>
+                    <option value="svg">SVG Vector</option>
+                    <option value="json">JSON Data</option>
+                    <option value="css">CSS Variables</option>
+                    <option value="scss">SCSS Variables</option>
+                    <option value="tailwind">Tailwind Config</option>
+                    <option value="ase">Adobe ASE</option>
+                </select>
+            </div>
+            
+            <div id="resolutionOption">
+                <label class="text-sm text-white/50 mb-2 block">Resolution</label>
+                <select id="exportResolution" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white">
+                    <option value="64">64×64 (1px per color)</option>
+                    <option value="256">256×256</option>
+                    <option value="512" selected>512×512</option>
+                    <option value="1024">1024×1024</option>
+                    <option value="2048">2048×2048</option>
+                    <option value="4096">4096×4096 (4K)</option>
+                </select>
+            </div>
+            
+            <div class="flex gap-3 mt-6">
+                <button class="btn btn-secondary flex-1" onclick="hideExportModal()">Cancel</button>
+                <button class="btn btn-primary flex-1" onclick="doExport()">💾 Download</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== HISTORY PANEL ========== -->
+<div class="fixed top-20 right-6 w-80 glass-panel p-4 hidden z-50" id="historyPanel" role="dialog" aria-label="Palette history">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold">History</h3>
+        <button class="btn glass-button btn-sm" onclick="clearHistory()" aria-label="Clear history">🗑️</button>
+    </div>
+    <div class="space-y-2 max-h-[400px] overflow-y-auto" id="historyList">
+        <!-- Generated by JS -->
+    </div>
+</div>
+
+<!-- ========== HELP MODAL ========== -->
+<div class="modal-overlay" id="helpModal" onclick="hideHelpModal(event)" role="dialog" aria-labelledby="helpTitle" aria-modal="true">
+    <div class="modal help-modal" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold" id="helpTitle">Keyboard Shortcuts</h2>
+            <button class="btn glass-button btn-sm" onclick="hideHelpModal()" aria-label="Close help">✕</button>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Generation -->
+            <div>
+                <h3 class="text-sm font-semibold text-white/60 mb-3 uppercase tracking-wide">Generation</h3>
+                <div class="shortcut-grid">
+                    <span class="shortcut-key"><kbd class="kbd">Space</kbd></span>
+                    <span class="text-white/80">Random palette</span>
+                    <span class="shortcut-key"><kbd class="kbd">G</kbd></span>
+                    <span class="text-white/80">Generate from seed</span>
+                    <span class="shortcut-key"><kbd class="kbd">S</kbd></span>
+                    <span class="text-white/80">Shuffle colors</span>
+                </div>
+            </div>
+
+            <!-- Editing -->
+            <div>
+                <h3 class="text-sm font-semibold text-white/60 mb-3 uppercase tracking-wide">Editing</h3>
+                <div class="shortcut-grid">
+                    <span class="shortcut-key"><kbd class="kbd">L</kbd></span>
+                    <span class="text-white/80">Lock/unlock selected</span>
+                    <span class="shortcut-key"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">C</kbd></span>
+                    <span class="text-white/80">Copy selected color</span>
+                    <span class="shortcut-key"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Z</kbd></span>
+                    <span class="text-white/80">Undo</span>
+                    <span class="shortcut-key"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Y</kbd></span>
+                    <span class="text-white/80">Redo</span>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div>
+                <h3 class="text-sm font-semibold text-white/60 mb-3 uppercase tracking-wide">Navigation</h3>
+                <div class="shortcut-grid">
+                    <span class="shortcut-key"><kbd class="kbd">←</kbd><kbd class="kbd">→</kbd><kbd class="kbd">↑</kbd><kbd class="kbd">↓</kbd></span>
+                    <span class="text-white/80">Navigate palette</span>
+                    <span class="shortcut-key"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">H</kbd></span>
+                    <span class="text-white/80">Toggle history</span>
+                    <span class="shortcut-key"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">S</kbd></span>
+                    <span class="text-white/80">Export palette</span>
+                    <span class="shortcut-key"><kbd class="kbd">?</kbd></span>
+                    <span class="text-white/80">Show this help</span>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="pt-4 border-t border-white/10">
+                <h3 class="text-sm font-semibold text-white/60 mb-3 uppercase tracking-wide">Tips</h3>
+                <ul class="text-sm text-white/70 space-y-2">
+                    <li>Double-click a color to edit it directly</li>
+                    <li>Click the color wheel to set a new seed color</li>
+                    <li>Drag the Size slider to resize the palette view</li>
+                </ul>
+            </div>
+        </div>
+
+        <button class="btn btn-secondary w-full mt-6" onclick="hideHelpModal()">Got it!</button>
+    </div>
+</div>
+
+<!-- ========== TOAST ========== -->
+<div class="toast" id="toast">
+    <span id="toastIcon">✓</span>
+    <span id="toastMessage">Action completed</span>
+</div>
+
+<!-- ========== HIDDEN CANVASES ========== -->
+<canvas id="imageCanvas" class="hidden"></canvas>
+<canvas id="exportCanvas" class="hidden"></canvas>
+
+<script>
+    // ================================================
+    // STATE
+    // ================================================
+    
+    let palette = [];
+    let basePalette = [];
+    let gridSize = 8;
+    let selectedIndex = 0;
+    let lockedIndices = new Set();
+    let currentHarmony = 'triadic';
+    let seedColor = '#ff6b6b';
+    let uploadedImage = null;
+    let history = [];
+    let historyIndex = -1;
+    let blenderSocket = null;
+    let isBlenderConnected = false;
+    
+    // Harmonies definition
+    const harmonies = {
+        complementary: { name: 'Complementary', angles: [180], dots: 2 },
+        triadic: { name: 'Triadic', angles: [120, 240], dots: 3 },
+        tetradic: { name: 'Tetradic', angles: [90, 180, 270], dots: 4 },
+        analogous: { name: 'Analogous', angles: [30, 60], dots: 3 },
+        split: { name: 'Split-Comp', angles: [150, 210], dots: 3 },
+        square: { name: 'Square', angles: [90, 180, 270], dots: 4 },
+        mono: { name: 'Monochromatic', angles: [], dots: 1 }
+    };
+    
+    // Preset palettes
+    const presets = [
+        { name: 'Forest', category: 'nature', colors: ['#2d5a27', '#3d7a3d', '#4a9f4a', '#6b8e23', '#8fbc8f', '#98d898', '#c8e6c8', '#f5f5dc'] },
+        { name: 'Ocean', category: 'nature', colors: ['#0a3d62', '#1e6091', '#3282b8', '#4ca1af', '#7ec8e3', '#a8d8ea', '#c7e9f1', '#e8f4f8'] },
+        { name: 'Sunset', category: 'nature', colors: ['#2c1810', '#6b2d1a', '#b84a23', '#e07020', '#f4a020', '#ffc04d', '#ffe066', '#fff4cc'] },
+        { name: 'Desert', category: 'nature', colors: ['#8b4513', '#a0522d', '#cd853f', '#daa520', '#e6c78c', '#f0d9a8', '#f5e6c8', '#faf0e6'] },
+        { name: 'Happy', category: 'mood', colors: ['#ff6b6b', '#ff8e8e', '#ffd93d', '#ffe66d', '#6bcb77', '#8ee99a', '#4d96ff', '#74b3ff'] },
+        { name: 'Calm', category: 'mood', colors: ['#a8d8ea', '#b8e0d2', '#d6eadf', '#eaf4f4', '#e8e8e4', '#d9dbbc', '#cadeef', '#c9e4de'] },
+        { name: 'Energetic', category: 'mood', colors: ['#ff0000', '#ff4400', '#ff8800', '#ffcc00', '#ccff00', '#88ff00', '#00ff44', '#00ffcc'] },
+        { name: 'Melancholy', category: 'mood', colors: ['#2c3e50', '#34495e', '#546e7a', '#607d8b', '#78909c', '#90a4ae', '#b0bec5', '#cfd8dc'] },
+        { name: '70s Earth', category: 'retro', colors: ['#704214', '#8b5a2b', '#a67c52', '#c19a6b', '#d4a574', '#e8d5b7', '#c9b896', '#b08968'] },
+        { name: '80s Neon', category: 'retro', colors: ['#ff00ff', '#ff00aa', '#ff0055', '#ff5500', '#ffaa00', '#00ffff', '#00aaff', '#0055ff'] },
+        { name: '90s Grunge', category: 'retro', colors: ['#2d2d2d', '#4a4a4a', '#6b5b4f', '#8b7355', '#a68b5b', '#8b0000', '#556b2f', '#2f4f4f'] },
+        { name: 'Vaporwave', category: 'retro', colors: ['#ff71ce', '#b967ff', '#05ffa1', '#fffb96', '#ff9f43', '#01cdfe', '#7ef9ff', '#ff6b6b'] },
+        { name: 'Material', category: 'uiux', colors: ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#00bcd4', '#4caf50'] },
+        { name: 'Dark Mode', category: 'uiux', colors: ['#1a1a2e', '#16213e', '#0f3460', '#1a1a40', '#270082', '#7a0bc0', '#e94560', '#fa255e'] },
+        { name: 'Light Mode', category: 'uiux', colors: ['#ffffff', '#f8f9fa', '#e9ecef', '#dee2e6', '#ced4da', '#adb5bd', '#6c757d', '#495057'] },
+        { name: 'Gradient UI', category: 'uiux', colors: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'] },
+        { name: 'Impressionist', category: 'art', colors: ['#264653', '#2a9d8f', '#e9c46a', '#f4a261', '#e76f51', '#84a98c', '#cad2c5', '#52796f'] },
+        { name: 'Pop Art', category: 'art', colors: ['#ff0000', '#ffff00', '#0000ff', '#00ff00', '#ff00ff', '#00ffff', '#ff8000', '#8000ff'] },
+        { name: 'Watercolor', category: 'art', colors: ['#f6e8ea', '#ef9a9a', '#ce93d8', '#b39ddb', '#9fa8da', '#90caf9', '#80deea', '#a5d6a7'] },
+        { name: 'Film Noir', category: 'art', colors: ['#0d0d0d', '#1a1a1a', '#333333', '#4d4d4d', '#666666', '#808080', '#999999', '#b3b3b3'] },
+        { name: 'Blade Runner', category: 'cinema', colors: ['#0d1b2a', '#1b263b', '#415a77', '#778da9', '#e0e1dd', '#c44536', '#772e25', '#283618'] },
+        { name: 'Wes Anderson', category: 'cinema', colors: ['#fcd5ce', '#f8edeb', '#ffe5d9', '#ffd7ba', '#e8e8e4', '#d5c6e0', '#aed9e0', '#b8f2e6'] },
+        { name: 'Horror', category: 'cinema', colors: ['#0d0d0d', '#1a0000', '#330000', '#4d0000', '#660000', '#800000', '#990000', '#b30000'] },
+        { name: 'Sci-Fi', category: 'cinema', colors: ['#0a0a23', '#1a1a40', '#2d2d6b', '#4040a0', '#6060c0', '#00d4ff', '#00ff9f', '#c0c0ff'] }
+    ];
+    
+    // Color names database (simplified)
+    const colorNames = {
+        '#ff6b6b': 'Coral Red', '#ff8e8e': 'Salmon Pink', '#ffd93d': 'Sunny Yellow',
+        '#48dbfb': 'Sky Blue', '#a55eea': 'Purple Heart', '#26de81': 'Mint Green',
+        '#ff9f43': 'Orange Peel', '#fd79a8': 'Pink Rose', '#00d2d3': 'Cyan',
+        '#1dd1a1': 'Emerald', '#ffeaa7': 'Cream', '#dfe6e9': 'Cloud White'
+    };
+    
+    // ================================================
+    // COLOR UTILITIES
+    // ================================================
+    
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : { r: 0, g: 0, b: 0 };
+    }
+    
+    function rgbToHex(r, g, b) {
+        return '#' + [r, g, b].map(x => {
+            const hex = Math.round(Math.max(0, Math.min(255, x))).toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        }).join('');
+    }
+    
+    function rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        
+        if (max === min) {
+            h = s = 0;
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                case g: h = ((b - r) / d + 2) / 6; break;
+                case b: h = ((r - g) / d + 4) / 6; break;
+            }
+        }
+        return { h: h * 360, s: s * 100, l: l * 100 };
+    }
+    
+    function hslToRgb(h, s, l) {
+        h /= 360; s /= 100; l /= 100;
+        let r, g, b;
+        
+        if (s === 0) {
+            r = g = b = l;
+        } else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+        return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+    }
+    
+    function hslToHex(h, s, l) {
+        const { r, g, b } = hslToRgb(h, s, l);
+        return rgbToHex(r, g, b);
+    }
+    
+    function hexToHsl(hex) {
+        const rgb = hexToRgb(hex);
+        return rgbToHsl(rgb.r, rgb.g, rgb.b);
+    }
+    
+    function getContrastRatio(hex1, hex2) {
+        const lum1 = getLuminance(hex1);
+        const lum2 = getLuminance(hex2);
+        const lighter = Math.max(lum1, lum2);
+        const darker = Math.min(lum1, lum2);
+        return (lighter + 0.05) / (darker + 0.05);
+    }
+    
+    function getLuminance(hex) {
+        const rgb = hexToRgb(hex);
+        const [r, g, b] = [rgb.r, rgb.g, rgb.b].map(v => {
+            v /= 255;
+            return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+    
+    function getColorName(hex) {
+        // Check exact match
+        if (colorNames[hex.toLowerCase()]) return colorNames[hex.toLowerCase()];
+        
+        // Find closest named color
+        const { h, s, l } = hexToHsl(hex);
+        
+        if (s < 15) {
+            if (l > 90) return 'White';
+            if (l < 10) return 'Black';
+            return l > 50 ? 'Light Gray' : 'Dark Gray';
+        }
+        
+        const hueNames = [
+            [15, 'Red'], [45, 'Orange'], [70, 'Yellow'], [150, 'Green'],
+            [210, 'Cyan'], [260, 'Blue'], [290, 'Purple'], [330, 'Pink'], [360, 'Red']
+        ];
+        
+        let hueName = 'Red';
+        for (const [angle, name] of hueNames) {
+            if (h <= angle) { hueName = name; break; }
+        }
+        
+        if (l > 70) return 'Light ' + hueName;
+        if (l < 30) return 'Dark ' + hueName;
+        if (s > 70) return 'Vivid ' + hueName;
+        return hueName;
+    }
+    
+    // ================================================
+    // HARMONY GENERATION
+    // ================================================
+    
+    function generateHarmonyColors(baseHue, harmonyType) {
+        const harmony = harmonies[harmonyType];
+        const hues = [baseHue];
+        harmony.angles.forEach(angle => {
+            hues.push((baseHue + angle) % 360);
+        });
+        return hues;
+    }
+    
+    function generatePaletteFromHarmony(seedHex, harmonyType, size) {
+        const { h, s } = hexToHsl(seedHex);
+        const hues = generateHarmonyColors(h, harmonyType);
+        const colors = [];
+        const total = size * size;
+        const perHue = Math.ceil(total / hues.length);
+        
+        hues.forEach((hue, hueIndex) => {
+            for (let i = 0; i < perHue && colors.length < total; i++) {
+                // Skip locked colors
+                if (lockedIndices.has(colors.length)) {
+                    colors.push(palette[colors.length]);
+                    continue;
+                }
+                
+                const progress = i / perHue;
+                let sat, light;
+                
+                if (harmonyType === 'mono') {
+                    sat = 30 + progress * 60;
+                    light = 20 + progress * 65;
+                } else {
+                    sat = Math.max(30, Math.min(90, s + (Math.random() - 0.5) * 30));
+                    light = 20 + progress * 65;
+                }
+                
+                colors.push(hslToHex(hue, sat, light));
+            }
+        });
+        
+        return colors.slice(0, total);
+    }
+    
+    // ================================================
+    // UI RENDERING
+    // ================================================
+    
+    function renderHarmonyButtons() {
+        const container = document.getElementById('harmonyButtons');
+        container.innerHTML = Object.entries(harmonies).map(([key, val]) => {
+            const isActive = key === currentHarmony;
+            const dotColors = generateHarmonyColors(hexToHsl(seedColor).h, key)
+                .map(h => hslToHex(h, 70, 55));
+            
+            return `
+                <button class="harmony-pill ${isActive ? 'active' : ''}" onclick="setHarmony('${key}')">
+                    ${val.name}
+                    <span class="dots">
+                        ${dotColors.map(c => `<span class="dot" style="background:${c}"></span>`).join('')}
+                    </span>
+                </button>
+            `;
+        }).join('');
+    }
+    
+    function renderPaletteGrid() {
+        const grid = document.getElementById('paletteGrid');
+        grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+        grid.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+
+        grid.innerHTML = palette.map((color, i) => `
+            <div class="palette-cell ${i === selectedIndex ? 'selected' : ''} ${lockedIndices.has(i) ? 'locked' : ''}"
+                 style="background: ${color}"
+                 onclick="selectColor(${i})"
+                 ondblclick="editColor(${i})"
+                 tabindex="0"
+                 role="gridcell"
+                 aria-label="${color}"
+                 title="${color}">
+            </div>
+        `).join('');
+
+        updateSelectedColorInfo();
+        updateColorsList();
+        updateGradientPreview();
+    }
+    
+    function updateSelectedColorInfo() {
+        const color = palette[selectedIndex] || '#000000';
+        const rgb = hexToRgb(color);
+        const hsl = hexToHsl(color);
+        
+        document.getElementById('selectedColorPreview').style.background = color;
+        document.getElementById('selectedHex').textContent = color.toUpperCase();
+        document.getElementById('selectedRgb').textContent = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+        document.getElementById('selectedHsl').textContent = `${Math.round(hsl.h)}°, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%`;
+        document.getElementById('selectedName').textContent = getColorName(color);
+        
+        // Update lock button
+        document.getElementById('lockBtn').textContent = lockedIndices.has(selectedIndex) ? '🔒' : '🔓';
+        
+        // Update accessibility badges
+        updateA11yBadges(color);
+    }
+    
+    function updateA11yBadges(color) {
+        const whiteRatio = getContrastRatio(color, '#ffffff');
+        const blackRatio = getContrastRatio(color, '#000000');
+        
+        const whiteBadge = document.getElementById('a11yWhiteBadge');
+        const blackBadge = document.getElementById('a11yBlackBadge');
+        
+        document.getElementById('a11yWhite').style.background = color;
+        document.getElementById('a11yBlack').style.background = color;
+        
+        if (whiteRatio >= 7) {
+            whiteBadge.className = 'a11y-badge pass';
+            whiteBadge.textContent = 'AAA ✓';
+        } else if (whiteRatio >= 4.5) {
+            whiteBadge.className = 'a11y-badge pass';
+            whiteBadge.textContent = 'AA ✓';
+        } else {
+            whiteBadge.className = 'a11y-badge fail';
+            whiteBadge.textContent = 'Fail';
+        }
+        
+        if (blackRatio >= 7) {
+            blackBadge.className = 'a11y-badge pass';
+            blackBadge.textContent = 'AAA ✓';
+        } else if (blackRatio >= 4.5) {
+            blackBadge.className = 'a11y-badge pass';
+            blackBadge.textContent = 'AA ✓';
+        } else {
+            blackBadge.className = 'a11y-badge fail';
+            blackBadge.textContent = 'Fail';
+        }
+    }
+    
+    function updateColorsList() {
+        const unique = [...new Set(palette)];
+        // Update count display
+        document.getElementById('colorsCount').textContent = `(${unique.length})`;
+        // Show ALL unique colors, not limited to 24
+        document.getElementById('colorsList').innerHTML = unique.map(color => `
+            <div class="hex-chip" style="background: ${color}33" onclick="copyToClipboard('${color}')" role="listitem" tabindex="0" aria-label="${color}">
+                <span class="swatch" style="background: ${color}"></span>
+                <span style="color: ${getLuminance(color) > 0.5 ? '#000' : '#fff'}">${color}</span>
+            </div>
+        `).join('');
+    }
+    
+    function updateGradientPreview() {
+        const gradientColors = [...new Set(palette)].slice(0, 8);
+        const gradient = `linear-gradient(90deg, ${gradientColors.join(', ')})`;
+        document.getElementById('gradientBar').style.background = gradient;
+    }
+    
+    function updateWheelMarkers() {
+        // Remove old markers
+        document.querySelectorAll('.wheel-marker:not(#seedMarker)').forEach(m => m.remove());
+        
+        const wheel = document.querySelector('.wheel-container');
+        const { h } = hexToHsl(seedColor);
+        const hues = generateHarmonyColors(h, currentHarmony);
+        
+        hues.forEach((hue, i) => {
+            const angle = (hue - 90) * (Math.PI / 180);
+            const radius = 125;
+            const x = 160 + radius * Math.cos(angle);
+            const y = 160 + radius * Math.sin(angle);
+            
+            const marker = document.createElement('div');
+            marker.className = `wheel-marker ${i === 0 ? 'primary' : ''}`;
+            marker.style.left = x + 'px';
+            marker.style.top = y + 'px';
+            marker.style.background = hslToHex(hue, 70, 55);
+            wheel.appendChild(marker);
+        });
+        
+        // Draw harmony shape
+        drawHarmonyShape(hues);
+    }
+    
+    function drawHarmonyShape(hues) {
+        const svg = document.getElementById('harmonyShape');
+        const cx = 160, cy = 160, r = 125;
+        
+        if (hues.length < 2) {
+            svg.innerHTML = '';
+            return;
+        }
+        
+        const points = hues.map(hue => {
+            const angle = (hue - 90) * (Math.PI / 180);
+            return {
+                x: cx + r * Math.cos(angle),
+                y: cy + r * Math.sin(angle)
+            };
+        });
+        
+        const pathD = points.map((p, i) => 
+            (i === 0 ? 'M' : 'L') + p.x + ',' + p.y
+        ).join(' ') + ' Z';
+        
+        svg.innerHTML = `
+            <path d="${pathD}" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+        `;
+    }
+    
+    function renderPresets(category = 'all') {
+        const filtered = category === 'all' ? presets : presets.filter(p => p.category === category);
+        
+        document.getElementById('presetsGrid').innerHTML = filtered.map(preset => `
+            <div class="preset-card" onclick="loadPreset('${preset.name}')">
+                <div class="preset-colors">
+                    ${preset.colors.map(c => `<div style="background: ${c}"></div>`).join('')}
+                </div>
+                <div class="text-sm font-medium">${preset.name}</div>
+                <div class="text-xs text-white/40">${getCategoryEmoji(preset.category)}</div>
+            </div>
+        `).join('');
+    }
+    
+    function getCategoryEmoji(cat) {
+        const emojis = { nature: '🌿', mood: '💭', retro: '📺', uiux: '🖥️', art: '🎨', cinema: '🎬' };
+        return emojis[cat] || '';
+    }
+    
+    // ================================================
+    // ACTIONS
+    // ================================================
+    
+    function generatePalette() {
+        saveToHistory();
+        palette = generatePaletteFromHarmony(seedColor, currentHarmony, gridSize);
+        basePalette = [...palette];
+        renderPaletteGrid();
+        updateWheelMarkers();
+        showToast('⚡', 'Palette generated');
+    }
+    
+    function randomizePalette() {
+        seedColor = hslToHex(Math.random() * 360, 60 + Math.random() * 30, 55);
+        document.getElementById('seedColorPicker').value = seedColor;
+        document.getElementById('seedHexDisplay').textContent = seedColor.toUpperCase();
+        generatePalette();
+    }
+    
+    function shufflePalette() {
+        saveToHistory();
+        // Only shuffle unlocked colors
+        const unlocked = [];
+        const lockedPositions = [];
+        
+        palette.forEach((color, i) => {
+            if (lockedIndices.has(i)) {
+                lockedPositions.push({ index: i, color });
+            } else {
+                unlocked.push(color);
+            }
+        });
+        
+        // Fisher-Yates shuffle
+        for (let i = unlocked.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [unlocked[i], unlocked[j]] = [unlocked[j], unlocked[i]];
+        }
+        
+        // Rebuild palette
+        let unlockedIndex = 0;
+        palette = palette.map((_, i) => {
+            if (lockedIndices.has(i)) {
+                return lockedPositions.find(p => p.index === i).color;
+            }
+            return unlocked[unlockedIndex++];
+        });
+        
+        basePalette = [...palette];
+        renderPaletteGrid();
+        showToast('🔀', 'Palette shuffled');
+    }
+    
+    function sortPalette(by) {
+        saveToHistory();
+        const indexed = palette.map((c, i) => ({ color: c, index: i, locked: lockedIndices.has(i) }));
+        const unlocked = indexed.filter(x => !x.locked);
+        
+        unlocked.sort((a, b) => {
+            const hslA = hexToHsl(a.color);
+            const hslB = hexToHsl(b.color);
+            
+            switch (by) {
+                case 'hue': return hslA.h - hslB.h;
+                case 'light': return hslB.l - hslA.l;
+                case 'sat': return hslB.s - hslA.s;
+                default: return 0;
+            }
+        });
+        
+        let unlockedIdx = 0;
+        palette = indexed.map(x => {
+            if (x.locked) return x.color;
+            return unlocked[unlockedIdx++].color;
+        });
+        
+        basePalette = [...palette];
+        renderPaletteGrid();
+        showToast('📊', `Sorted by ${by}`);
+    }
+    
+    function flipH() {
+        saveToHistory();
+        const newPalette = [];
+        for (let row = 0; row < gridSize; row++) {
+            const start = row * gridSize;
+            const rowColors = palette.slice(start, start + gridSize).reverse();
+            newPalette.push(...rowColors);
+        }
+        palette = newPalette;
+        basePalette = [...palette];
+        renderPaletteGrid();
+    }
+    
+    function flipV() {
+        saveToHistory();
+        const rows = [];
+        for (let i = 0; i < gridSize; i++) {
+            rows.push(palette.slice(i * gridSize, (i + 1) * gridSize));
+        }
+        rows.reverse();
+        palette = rows.flat();
+        basePalette = [...palette];
+        renderPaletteGrid();
+    }
+    
+    function rotateL() {
+        saveToHistory();
+        const newPalette = [];
+        for (let col = gridSize - 1; col >= 0; col--) {
+            for (let row = 0; row < gridSize; row++) {
+                newPalette.push(palette[row * gridSize + col]);
+            }
+        }
+        palette = newPalette;
+        basePalette = [...palette];
+        renderPaletteGrid();
+    }
+    
+    function rotateR() {
+        saveToHistory();
+        const newPalette = [];
+        for (let col = 0; col < gridSize; col++) {
+            for (let row = gridSize - 1; row >= 0; row--) {
+                newPalette.push(palette[row * gridSize + col]);
+            }
+        }
+        palette = newPalette;
+        basePalette = [...palette];
+        renderPaletteGrid();
+    }
+    
+    function selectColor(index) {
+        selectedIndex = index;
+        document.querySelectorAll('.palette-cell').forEach((cell, i) => {
+            cell.classList.toggle('selected', i === index);
+        });
+        updateSelectedColorInfo();
+    }
+    
+    function lockSelectedColor() {
+        if (lockedIndices.has(selectedIndex)) {
+            lockedIndices.delete(selectedIndex);
+        } else {
+            lockedIndices.add(selectedIndex);
+        }
+        renderPaletteGrid();
+    }
+    
+    function setHarmony(type) {
+        currentHarmony = type;
+        renderHarmonyButtons();
+        generatePalette();
+    }
+    
+    function setGridSize(size) {
+        gridSize = size;
+        document.getElementById('gridSizeLabel').textContent = `${size}×${size}`;
+        document.querySelectorAll('[data-size]').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.size) === size);
+        });
+        lockedIndices.clear();
+        generatePalette();
+    }
+    
+    function randomSeedColor() {
+        seedColor = hslToHex(Math.random() * 360, 60 + Math.random() * 30, 50 + Math.random() * 20);
+        document.getElementById('seedColorPicker').value = seedColor;
+        document.getElementById('seedHexDisplay').textContent = seedColor.toUpperCase();
+        updateWheelMarkers();
+    }
+    
+    // ================================================
+    // ADJUSTMENTS
+    // ================================================
+    
+    function applyAdjustments() {
+        const hueShift = parseInt(document.getElementById('hueSlider').value);
+        const satMult = parseInt(document.getElementById('satSlider').value) / 100;
+        const lightMult = parseInt(document.getElementById('lightSlider').value) / 100;
+        const temp = parseInt(document.getElementById('tempSlider').value);
+        
+        document.getElementById('hueVal').textContent = hueShift + '°';
+        document.getElementById('satVal').textContent = Math.round(satMult * 100) + '%';
+        document.getElementById('lightVal').textContent = Math.round(lightMult * 100) + '%';
+        document.getElementById('tempVal').textContent = temp;
+        
+        palette = basePalette.map((color, i) => {
+            if (lockedIndices.has(i)) return color;
+            
+            let { h, s, l } = hexToHsl(color);
+            
+            h = (h + hueShift + 360) % 360;
+            s = Math.max(0, Math.min(100, s * satMult));
+            l = Math.max(5, Math.min(95, l * lightMult));
+            
+            // Temperature shift
+            if (temp !== 0) {
+                const targetHue = temp > 0 ? 30 : 210;
+                h = h + (targetHue - h) * (Math.abs(temp) / 100);
+            }
+            
+            return hslToHex(h, s, l);
+        });
+        
+        renderPaletteGrid();
+    }
+    
+    function resetAdjustments() {
+        document.getElementById('hueSlider').value = 0;
+        document.getElementById('satSlider').value = 100;
+        document.getElementById('lightSlider').value = 100;
+        document.getElementById('tempSlider').value = 0;
+        
+        document.getElementById('hueVal').textContent = '0°';
+        document.getElementById('satVal').textContent = '100%';
+        document.getElementById('lightVal').textContent = '100%';
+        document.getElementById('tempVal').textContent = '0';
+        
+        palette = [...basePalette];
+        renderPaletteGrid();
+    }
+    
+    // ================================================
+    // TABS & SOURCE
+    // ================================================
+    
+    function switchSourceTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.toggle('hidden', content.id !== `tab-${tab}`);
+        });
+    }
+    
+    function loadPreset(name) {
+        const preset = presets.find(p => p.name === name);
+        if (!preset) return;
+        
+        saveToHistory();
+        
+        // Expand preset to fill grid
+        palette = [];
+        const total = gridSize * gridSize;
+        const perColor = Math.ceil(total / preset.colors.length);
+        
+        preset.colors.forEach(color => {
+            const { h, s, l } = hexToHsl(color);
+            for (let i = 0; i < perColor && palette.length < total; i++) {
+                const newL = Math.max(15, Math.min(85, l + (i - perColor/2) * 8));
+                palette.push(hslToHex(h, s, newL));
+            }
+        });
+        
+        palette = palette.slice(0, total);
+        basePalette = [...palette];
+        lockedIndices.clear();
+        renderPaletteGrid();
+        showToast('📁', `Loaded: ${name}`);
+    }
+    
+    function filterPresets() {
+        const category = document.getElementById('presetCategory').value;
+        renderPresets(category);
+    }
+    
+    // ================================================
+    // IMAGE EXTRACTION
+    // ================================================
+    
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            uploadedImage = new Image();
+            uploadedImage.onload = () => {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                document.getElementById('uploadZone').classList.add('hidden');
+            };
+            uploadedImage.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    function clearImage() {
+        uploadedImage = null;
+        document.getElementById('imageInput').value = '';
+        document.getElementById('imagePreviewContainer').classList.add('hidden');
+        document.getElementById('uploadZone').classList.remove('hidden');
+    }
+    
+    function extractFromImage() {
+        if (!uploadedImage) return;
+        
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const maxSize = 150;
+        const scale = Math.min(maxSize / uploadedImage.width, maxSize / uploadedImage.height);
+        canvas.width = uploadedImage.width * scale;
+        canvas.height = uploadedImage.height * scale;
+        
+        ctx.drawImage(uploadedImage, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        const method = document.getElementById('extractionMethod').value;
+        const baseColors = extractColors(imageData, method, 8);
+        
+        saveToHistory();
+        
+        // Expand to grid
+        palette = [];
+        const total = gridSize * gridSize;
+        const perColor = Math.ceil(total / baseColors.length);
+        
+        baseColors.forEach(color => {
+            const { h, s, l } = hexToHsl(color);
+            for (let i = 0; i < perColor && palette.length < total; i++) {
+                const newL = Math.max(15, Math.min(85, l + (i - perColor/2) * 10));
+                const newS = Math.max(20, Math.min(100, s + (i - perColor/2) * 5));
+                palette.push(hslToHex(h, newS, newL));
+            }
+        });
+        
+        palette = palette.slice(0, total);
+        basePalette = [...palette];
+        lockedIndices.clear();
+        renderPaletteGrid();
+        showToast('📷', 'Colors extracted!');
+    }
+    
+    function extractColors(imageData, method, count) {
+        const pixels = [];
+        for (let i = 0; i < imageData.data.length; i += 4) {
+            if (imageData.data[i + 3] > 128) {
+                pixels.push([imageData.data[i], imageData.data[i + 1], imageData.data[i + 2]]);
+            }
+        }
+        
+        if (pixels.length === 0) return ['#888888'];
+        
+        // K-means clustering
+        const sample = pixels.length > 5000 ? pixels.filter(() => Math.random() < 5000 / pixels.length) : pixels;
+        
+        let centroids = [];
+        for (let i = 0; i < count; i++) {
+            centroids.push(sample[Math.floor(Math.random() * sample.length)].slice());
+        }
+        
+        for (let iter = 0; iter < 15; iter++) {
+            const clusters = Array(count).fill(null).map(() => []);
+            
+            sample.forEach(pixel => {
+                let minDist = Infinity;
+                let closest = 0;
+                centroids.forEach((centroid, i) => {
+                    const dist = Math.sqrt(
+                        Math.pow(pixel[0] - centroid[0], 2) +
+                        Math.pow(pixel[1] - centroid[1], 2) +
+                        Math.pow(pixel[2] - centroid[2], 2)
+                    );
+                    if (dist < minDist) { minDist = dist; closest = i; }
+                });
+                clusters[closest].push(pixel);
+            });
+            
+            centroids = clusters.map((cluster, i) => {
+                if (cluster.length === 0) return centroids[i];
+                return [
+                    cluster.reduce((s, p) => s + p[0], 0) / cluster.length,
+                    cluster.reduce((s, p) => s + p[1], 0) / cluster.length,
+                    cluster.reduce((s, p) => s + p[2], 0) / cluster.length
+                ];
+            });
+        }
+        
+        // Sort by vibrancy if needed
+        if (method === 'vibrant') {
+            centroids.sort((a, b) => {
+                const hslA = rgbToHsl(a[0], a[1], a[2]);
+                const hslB = rgbToHsl(b[0], b[1], b[2]);
+                return (hslB.s * (1 - Math.abs(hslB.l - 50) / 50)) - (hslA.s * (1 - Math.abs(hslA.l - 50) / 50));
+            });
+        } else if (method === 'muted') {
+            centroids.sort((a, b) => {
+                const hslA = rgbToHsl(a[0], a[1], a[2]);
+                const hslB = rgbToHsl(b[0], b[1], b[2]);
+                return hslA.s - hslB.s;
+            });
+        }
+        
+        return centroids.map(c => rgbToHex(c[0], c[1], c[2]));
+    }
+    
+    // ================================================
+    // HISTORY
+    // ================================================
+    
+    function saveToHistory() {
+        // Remove future states if we're not at the end
+        history = history.slice(0, historyIndex + 1);
+        
+        history.push({
+            palette: [...palette],
+            gridSize,
+            seedColor,
+            harmony: currentHarmony,
+            timestamp: Date.now()
+        });
+        
+        // Limit history
+        if (history.length > 50) history.shift();
+        historyIndex = history.length - 1;
+        
+        updateHistoryButtons();
+    }
+    
+    function undo() {
+        if (historyIndex <= 0) return;
+        historyIndex--;
+        restoreFromHistory(history[historyIndex]);
+        updateHistoryButtons();
+    }
+    
+    function redo() {
+        if (historyIndex >= history.length - 1) return;
+        historyIndex++;
+        restoreFromHistory(history[historyIndex]);
+        updateHistoryButtons();
+    }
+    
+    function restoreFromHistory(state) {
+        palette = [...state.palette];
+        basePalette = [...palette];
+        gridSize = state.gridSize;
+        seedColor = state.seedColor;
+        currentHarmony = state.harmony;
+        
+        document.getElementById('seedColorPicker').value = seedColor;
+        document.getElementById('seedHexDisplay').textContent = seedColor.toUpperCase();
+        document.getElementById('gridSizeLabel').textContent = `${gridSize}×${gridSize}`;
+        
+        renderHarmonyButtons();
+        renderPaletteGrid();
+        updateWheelMarkers();
+    }
+    
+    function updateHistoryButtons() {
+        document.getElementById('undoBtn').disabled = historyIndex <= 0;
+        document.getElementById('redoBtn').disabled = historyIndex >= history.length - 1;
+    }
+    
+    function toggleHistory() {
+        const panel = document.getElementById('historyPanel');
+        panel.classList.toggle('hidden');
+        
+        if (!panel.classList.contains('hidden')) {
+            renderHistoryList();
+        }
+    }
+    
+    function renderHistoryList() {
+        document.getElementById('historyList').innerHTML = history.slice().reverse().map((state, i) => {
+            const idx = history.length - 1 - i;
+            const colors = state.palette.slice(0, 8);
+            const time = new Date(state.timestamp).toLocaleTimeString();
+            
+            return `
+                <div class="history-item ${idx === historyIndex ? 'ring-1 ring-white/30' : ''}" 
+                     onclick="jumpToHistory(${idx})">
+                    <div class="flex gap-1 flex-1">
+                        ${colors.map(c => `<div class="color" style="background:${c}"></div>`).join('')}
+                    </div>
+                    <span class="text-xs text-white/30">${time}</span>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function jumpToHistory(idx) {
+        historyIndex = idx;
+        restoreFromHistory(history[idx]);
+        updateHistoryButtons();
+        renderHistoryList();
+    }
+    
+    function clearHistory() {
+        history = [];
+        historyIndex = -1;
+        updateHistoryButtons();
+        renderHistoryList();
+        showToast('🗑️', 'History cleared');
+    }
+    
+    // ================================================
+    // EXPORT
+    // ================================================
+    
+    function showExportModal() {
+        document.getElementById('exportModal').classList.add('show');
+    }
+    
+    function hideExportModal(event) {
+        if (!event || event.target.id === 'exportModal') {
+            document.getElementById('exportModal').classList.remove('show');
+        }
+    }
+    
+    function updateExportOptions() {
+        const format = document.getElementById('exportFormat').value;
+        const resOption = document.getElementById('resolutionOption');
+        resOption.style.display = ['png', 'jpeg', 'webp'].includes(format) ? 'block' : 'none';
+    }
+    
+    function doExport() {
+        const format = document.getElementById('exportFormat').value;
+        
+        switch (format) {
+            case 'png':
+            case 'jpeg':
+            case 'webp':
+                exportImage(format);
+                break;
+            case 'svg':
+                exportSVG();
+                break;
+            case 'json':
+                exportJSON();
+                break;
+            case 'css':
+                exportCSS();
+                break;
+            case 'scss':
+                exportSCSS();
+                break;
+            case 'tailwind':
+                exportTailwind();
+                break;
+            case 'ase':
+                exportASE();
+                break;
+        }
+        
+        hideExportModal();
+    }
+    
+    function exportImage(format) {
+        const resolution = parseInt(document.getElementById('exportResolution').value);
+        const canvas = document.getElementById('exportCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = resolution;
+        canvas.height = resolution;
+        
+        const cellSize = resolution / gridSize;
+        
+        palette.forEach((color, i) => {
+            const row = Math.floor(i / gridSize);
+            const col = i % gridSize;
+            ctx.fillStyle = color;
+            ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+        });
+        
+        const mimeType = format === 'png' ? 'image/png' : format === 'jpeg' ? 'image/jpeg' : 'image/webp';
+        
+        canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `palette_${gridSize}x${gridSize}.${format}`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('💾', `Exported as ${format.toUpperCase()}`);
+        }, mimeType, 0.95);
+    }
+    
+    function exportSVG() {
+        const cellSize = 50;
+        const size = gridSize * cellSize;
+        
+        let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+        
+        palette.forEach((color, i) => {
+            const row = Math.floor(i / gridSize);
+            const col = i % gridSize;
+            svg += `<rect x="${col * cellSize}" y="${row * cellSize}" width="${cellSize}" height="${cellSize}" fill="${color}"/>`;
+        });
+        
+        svg += '</svg>';
+        
+        const blob = new Blob([svg], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `palette_${gridSize}x${gridSize}.svg`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('💾', 'Exported as SVG');
+    }
+    
+    function exportJSON() {
+        const data = {
+            name: 'Ultimate Palette',
+            gridSize,
+            colors: palette,
+            unique: [...new Set(palette)],
+            created: new Date().toISOString()
+        };
+        
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'palette.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('💾', 'Exported as JSON');
+    }
+    
+    function exportCSS() {
+        const unique = [...new Set(palette)];
+        const css = `:root {\n${unique.map((c, i) => `  --color-${i + 1}: ${c};`).join('\n')}\n}`;
+        
+        const blob = new Blob([css], { type: 'text/css' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'palette.css';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('💾', 'Exported as CSS');
+    }
+    
+    function exportSCSS() {
+        const unique = [...new Set(palette)];
+        const scss = unique.map((c, i) => `$color-${i + 1}: ${c};`).join('\n');
+        
+        const blob = new Blob([scss], { type: 'text/x-scss' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'palette.scss';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('💾', 'Exported as SCSS');
+    }
+    
+    function exportTailwind() {
+        const unique = [...new Set(palette)];
+        const config = `module.exports = {\n  theme: {\n    extend: {\n      colors: {\n        palette: {\n${unique.map((c, i) => `          '${i + 1}': '${c}',`).join('\n')}\n        }\n      }\n    }\n  }\n}`;
+        
+        const blob = new Blob([config], { type: 'text/javascript' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'tailwind.palette.js';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('💾', 'Exported for Tailwind');
+    }
+    
+    function exportASE() {
+        // Simplified ASE export (Adobe Swatch Exchange)
+        showToast('ℹ️', 'ASE export coming soon!');
+    }
+    
+    function quickExport(format) {
+        document.getElementById('exportFormat').value = format;
+        updateExportOptions();
+        doExport();
+    }
+    
+    // ================================================
+    // CLIPBOARD
+    // ================================================
+    
+    function copySelectedColor() {
+        copyToClipboard(palette[selectedIndex]);
+    }
+    
+    function copySeedColor() {
+        copyToClipboard(seedColor);
+    }
+    
+    function copyAllColors() {
+        const unique = [...new Set(palette)];
+        copyToClipboard(unique.join(', '));
+        showToast('📋', 'All colors copied!');
+    }
+    
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('📋', `Copied: ${text.slice(0, 30)}`);
+        });
+    }
+    
+    // ================================================
+    // BLENDER SYNC
+    // ================================================
+    
+    function toggleBlenderConnection() {
+        if (isBlenderConnected) {
+            blenderSocket.close();
+        } else {
+            connectToBlender();
+        }
+    }
+    
+    function connectToBlender() {
+        try {
+            blenderSocket = new WebSocket('ws://localhost:8765');
+            
+            blenderSocket.onopen = () => {
+                isBlenderConnected = true;
+                document.getElementById('syncDot').classList.add('connected');
+                document.getElementById('syncText').textContent = 'Connected';
+                document.getElementById('connectBtn').textContent = '🔌 Disconnect';
+                showToast('🔗', 'Connected to Blender!');
+            };
+            
+            blenderSocket.onclose = () => {
+                isBlenderConnected = false;
+                document.getElementById('syncDot').classList.remove('connected');
+                document.getElementById('syncText').textContent = 'Blender';
+                document.getElementById('connectBtn').textContent = '🔗 Connect';
+            };
+            
+            blenderSocket.onerror = () => {
+                showToast('⚠️', 'Could not connect. Is the Blender addon running?');
+            };
+            
+            blenderSocket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'palette') {
+                    saveToHistory();
+                    palette = data.colors;
+                    gridSize = data.gridSize || 8;
+                    basePalette = [...palette];
+                    document.getElementById('gridSizeLabel').textContent = `${gridSize}×${gridSize}`;
+                    renderPaletteGrid();
+                    showToast('📥', 'Received palette from Blender');
+                }
+            };
+        } catch (e) {
+            showToast('⚠️', 'WebSocket error');
+        }
+    }
+    
+    function syncToBlender() {
+        if (!isBlenderConnected) {
+            showToast('⚠️', 'Not connected to Blender');
+            return;
+        }
+        
+        blenderSocket.send(JSON.stringify({
+            type: 'palette',
+            colors: palette,
+            gridSize: gridSize
+        }));
+        
+        showToast('📤', 'Sent to Blender!');
+    }
+    
+    // ================================================
+    // TOAST
+    // ================================================
+    
+    function showToast(icon, message) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastIcon').textContent = icon;
+        document.getElementById('toastMessage').textContent = message;
+        toast.classList.add('show');
+        
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    
+    // ================================================
+    // KEYBOARD SHORTCUTS
+    // ================================================
+    
+    document.addEventListener('keydown', (e) => {
+        // Ignore if typing in input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        
+        switch (e.code) {
+            case 'Space':
+                e.preventDefault();
+                randomizePalette();
+                break;
+            case 'KeyG':
+                generatePalette();
+                break;
+            case 'KeyS':
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    showExportModal();
+                } else {
+                    shufflePalette();
+                }
+                break;
+            case 'KeyZ':
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    if (e.shiftKey) redo();
+                    else undo();
+                }
+                break;
+            case 'KeyY':
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    redo();
+                }
+                break;
+            case 'KeyH':
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    toggleHistory();
+                }
+                break;
+            case 'KeyL':
+                lockSelectedColor();
+                break;
+            case 'KeyC':
+                if (e.ctrlKey || e.metaKey) {
+                    copySelectedColor();
+                }
+                break;
+            case 'ArrowLeft':
+                if (selectedIndex > 0) selectColor(selectedIndex - 1);
+                break;
+            case 'ArrowRight':
+                if (selectedIndex < palette.length - 1) selectColor(selectedIndex + 1);
+                break;
+            case 'ArrowUp':
+                if (selectedIndex >= gridSize) selectColor(selectedIndex - gridSize);
+                break;
+            case 'ArrowDown':
+                if (selectedIndex < palette.length - gridSize) selectColor(selectedIndex + gridSize);
+                break;
+        }
+    });
+    
+    // ================================================
+    // DRAG & DROP
+    // ================================================
+    
+    const uploadZone = document.getElementById('uploadZone');
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        });
+    });
+    
+    uploadZone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            document.getElementById('imageInput').files = e.dataTransfer.files;
+            handleImageUpload({ target: { files: [file] } });
+        }
+    });
+    
+    // ================================================
+    // COLOR PICKER EVENTS
+    // ================================================
+    
+    document.getElementById('seedColorPicker').addEventListener('input', (e) => {
+        seedColor = e.target.value;
+        document.getElementById('seedHexDisplay').textContent = seedColor.toUpperCase();
+        updateWheelMarkers();
+    });
+    
+    document.getElementById('seedColorPicker').addEventListener('change', (e) => {
+        seedColor = e.target.value;
+        generatePalette();
+    });
+    
+    // Color wheel click
+    document.getElementById('colorWheel').addEventListener('click', (e) => {
+        const rect = e.target.getBoundingClientRect();
+        const x = e.clientX - rect.left - 160;
+        const y = e.clientY - rect.top - 160;
+        
+        // Check if inside the wheel (not center)
+        const dist = Math.sqrt(x * x + y * y);
+        if (dist < 48 || dist > 160) return;
+        
+        let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
+        if (angle < 0) angle += 360;
+        
+        seedColor = hslToHex(angle, 70, 55);
+        document.getElementById('seedColorPicker').value = seedColor;
+        document.getElementById('seedHexDisplay').textContent = seedColor.toUpperCase();
+        generatePalette();
+    });
+    
+    // ================================================
+    // HELP MODAL
+    // ================================================
+
+    function showHelpModal() {
+        document.getElementById('helpModal').classList.add('show');
+    }
+
+    function hideHelpModal(event) {
+        if (!event || event.target.id === 'helpModal') {
+            document.getElementById('helpModal').classList.remove('show');
+        }
+    }
+
+    // ================================================
+    // PALETTE SCALE
+    // ================================================
+
+    function setPaletteScale(value) {
+        const container = document.getElementById('paletteContainer');
+        container.style.width = value + 'px';
+        container.style.height = value + 'px';
+        document.getElementById('scaleLabel').textContent = value + 'px';
+    }
+
+    // ================================================
+    // SERVICE WORKER REGISTRATION (PWA)
+    // ================================================
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW registered'))
+                .catch(err => console.log('SW registration failed:', err));
+        });
+    }
+
+    // ================================================
+    // INITIALIZATION
+    // ================================================
+
+    function init() {
+        renderHarmonyButtons();
+        renderPresets();
+        generatePalette();
+        saveToHistory();
+
+        // Add ? key handler for help modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '?' && !e.target.matches('input, select, textarea')) {
+                e.preventDefault();
+                showHelpModal();
+            }
+            if (e.key === 'Escape') {
+                hideHelpModal();
+                hideExportModal();
+            }
+        });
+    }
+
+    init();
+</script>
+
+
+</body>
+</html>
