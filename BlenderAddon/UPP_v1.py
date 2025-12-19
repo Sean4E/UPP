@@ -2129,6 +2129,19 @@ class UPP_OT_SendToWeb(Operator):
         return {'FINISHED'}
 
 
+class UPP_OT_OpenWebApp(Operator):
+    """Open the Ultimate Palette Pro web interface in browser"""
+    bl_idname = "upp.open_web_app"
+    bl_label = "Open Web App"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        import webbrowser
+        webbrowser.open("https://sean4e.github.io/UPP/")
+        self.report({'INFO'}, "Opening web app in browser")
+        return {'FINISHED'}
+
+
 # ============================================================================
 # PANELS
 # ============================================================================
@@ -2475,12 +2488,9 @@ class UPP_PT_WebSyncPanel(Panel):
             layout.prop(props, "websocket_port", text="Port")
             layout.operator("upp.start_websocket", text="Start Server", icon='PLAY')
 
-        # Instructions
+        # Open web app button
         layout.separator()
-        box = layout.box()
-        box.scale_y = 0.8
-        box.label(text="Open web app and click", icon='INFO')
-        box.label(text="'Connect' to sync palettes")
+        layout.operator("upp.open_web_app", text="Open Web App", icon='URL')
 
 
 # ============================================================================
@@ -2513,6 +2523,7 @@ classes = [
     UPP_OT_StartWebSocket,
     UPP_OT_StopWebSocket,
     UPP_OT_SendToWeb,
+    UPP_OT_OpenWebApp,
 
     UPP_PT_MainPanel,
     UPP_PT_GeneratePanel,
